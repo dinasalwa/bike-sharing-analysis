@@ -51,4 +51,4 @@ python -m streamlit run dashboard/dashboard.py
 ## 🌐 Live Dashboard
 Anda dapat mengakses dashboard yang telah di-deploy melalui tautan berikut:
 
-👉 Link Dashboard Streamlit Anda
+👉 [Klik Di Sini untuk Melihat Dashboard](https://dina-bike-sharing-analysis.streamlit.app/)
