@@ -1,4 +1,4 @@
 🌐 Live Dashboard
 Anda dapat mengakses dashboard yang telah di-deploy melalui tautan berikut:
 
-👉 [Klik Di Sini untuk Melihat Dashboard](https://dina-bike-sharing-analysis.streamlit.app/)
+👉 https://dina-bike-sharing-analysis.streamlit.app/
