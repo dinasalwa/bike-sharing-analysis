@@ -10,19 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- 2. CUSTOM CSS ---
-st.markdown("""
-    <style>
-    .main {
-        background-color: #f8f9fa;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 28px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- 3. LOAD DATA ---
+# --- 2. LOAD DATA ---
 @st.cache_data
 def load_data():
     base_dir = os.path.dirname(__file__)
@@ -35,106 +23,119 @@ def load_data():
     day_df['dteday'] = pd.to_datetime(day_df['dteday'])
     hour_df['dteday'] = pd.to_datetime(hour_df['dteday'])
     
-    # Mapping Cuaca agar tampilan lebih manusiawi
-    day_df['weathersit'] = day_df['weathersit'].map({
+    # Mapping Cuaca
+    day_df['weathersit_label'] = day_df['weathersit'].map({
         1: 'Clear', 2: 'Misty/Cloudy', 3: 'Light Snow/Rain', 4: 'Severe Weather'
     })
+
+    # Manual Grouping Kategori Waktu
+    def get_time_category(hour):
+        if 5 <= hour < 12: return "Pagi"
+        elif 12 <= hour < 17: return "Siang"
+        elif 17 <= hour < 21: return "Sore"
+        else: return "Malam"
+    
+    hour_df['time_category'] = hour_df['hr'].apply(get_time_category)
+    
     return day_df, hour_df
 
 day_df, hour_df = load_data()
 
-# --- 4. SIDEBAR (Kalimat & Filter Tetap Ada) ---
+# --- 3. SIDEBAR ---
 with st.sidebar:
     st.image("https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?auto=format&fit=crop&q=80&w=2070", use_container_width=True)
     st.title("🚲 Bike Sharing Analysis")
     
-    # Filter Rentang Waktu
-    start_date, end_date = st.date_input(
-        label='Pilih Rentang Waktu:',
+    # FIX VALUEERROR: Menangani pemilihan rentang waktu agar tidak eror saat baru klik 1 tanggal
+    date_range = st.date_input(
+        label='Rentang Waktu:',
         min_value=day_df["dteday"].min(),
         max_value=day_df["dteday"].max(),
         value=[day_df["dteday"].min(), day_df["dteday"].max()]
     )
     
     st.markdown("---")
-    # Kalimat di sidebar yang kamu minta tetap ada
-    st.write("**Deskripsi Proyek:**")
-    st.write("Dashboard ini digunakan untuk memantau performa harian penyewaan sepeda berdasarkan dataset 'Bike Sharing'.")
-    st.info("Gunakan filter tanggal di atas untuk melihat data pada periode tertentu.")
+    st.write("**Dashboard ini digunakan untuk memantau performa harian penyewaan sepeda berdasarkan dataset 'Bike Sharing'.**")
+    st.info("**Gunakan filter tanggal di atas untuk melihat data pada periode tertentu.**")
 
-# Filter Data berdasarkan input sidebar
-main_df = day_df[(day_df["dteday"] >= str(start_date)) & 
-                 (day_df["dteday"] <= str(end_date))]
+# Pastikan start_date dan end_date terdefinisi dengan benar
+if isinstance(date_range, list) or isinstance(date_range, tuple):
+    if len(date_range) == 2:
+        start_date, end_date = date_range
+    else:
+        start_date = date_range[0]
+        end_date = day_df["dteday"].max()
+else:
+    start_date = end_date = date_range
 
-# --- 5. HEADER & RINGKASAN METRIK ---
+# --- 4. FILTER DATA ---
+main_df = day_df[(day_df["dteday"] >= pd.to_datetime(start_date)) & (day_df["dteday"] <= pd.to_datetime(end_date))]
+main_hour_df = hour_df[(hour_df["dteday"] >= pd.to_datetime(start_date)) & (hour_df["dteday"] <= pd.to_datetime(end_date))]
+
+# --- 5. HEADER ---
 st.title("Bike Sharing Performance Dashboard 📊")
-
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Total Penyewaan", value=f"{main_df.cnt.sum():,}")
-with col2:
-    st.metric("Rata-rata Harian", value=f"{round(main_df.cnt.mean()):,}")
-with col3:
-    st.metric("Puncak Penyewaan", value=f"{main_df.cnt.max():,}")
+col_m1, col_m2, col_m3 = st.columns(3)
+with col_m1: st.metric("Total Penyewaan", value=f"{main_df.cnt.sum():,}")
+with col_m2: st.metric("Rata-rata Harian", value=f"{round(main_df.cnt.mean()):,}")
+with col_m3: st.metric("Puncak Penyewaan", value=f"{main_df.cnt.max():,}")
 
 st.divider()
 
-# --- 6. TATA LETAK TAB ---
-tab1, tab2, tab3 = st.tabs(["📈 Tren Bulanan", "☁️ Analisis Cuaca", "🕒 Pola Jam"])
+# --- 6. VISUALISASI UTAMA ---
 
-# --- TAB 1: TREN BULANAN ---
-with tab1:
-    st.subheader("Visualisasi 1: Tren Pertumbuhan Penyewaan")
-    # Perbaikan rule 'ME' (Month End) untuk pandas terbaru
-    monthly_rentals = main_df.resample(rule='ME', on='dteday').agg({"cnt": "sum"}).reset_index()
+# TREN BULANAN
+st.subheader("📈 Tren Pertumbuhan Penyewaan Sepeda")
+monthly_rentals = main_df.resample(rule='ME', on='dteday').agg({"cnt": "sum"}).reset_index()
+fig1, ax1 = plt.subplots(figsize=(12, 5))
+ax1.plot(monthly_rentals["dteday"], monthly_rentals["cnt"], marker='o', linewidth=2, color="#72BCD4")
+ax1.set_ylabel("Jumlah Penyewaan")
+ax1.grid(True, linestyle='--', alpha=0.6)
+st.pyplot(fig1)
+with st.expander("Lihat Penjelasan Tren"):
+    st.write("Grafik ini menunjukkan fluktuasi penyewaan dari bulan ke bulan. Penurunan atau kenaikan tajam biasanya dipengaruhi oleh faktor musiman (season) atau hari libur (holiday).")
 
-    fig1, ax1 = plt.subplots(figsize=(16, 8))
-    ax1.plot(monthly_rentals["dteday"], monthly_rentals["cnt"], marker='o', linewidth=3, color="#72BCD4")
-    ax1.set_title("Total Penyewaan per Bulan (2011-2012)", fontsize=20)
-    ax1.set_ylabel("Jumlah Penyewa")
-    ax1.grid(True, linestyle='--', alpha=0.5)
-    st.pyplot(fig1)
-    
-    # Insight di bawah visualisasi
-    with st.container():
-        st.write("### 💡 Insight Tren Bulanan")
-        st.write("- Terlihat adanya tren kenaikan penyewaan yang signifikan terutama memasuki tahun 2012.")
-        st.write("- Penurunan musiman terlihat di akhir tahun, yang kemungkinan besar dipengaruhi faktor cuaca dingin.")
+st.divider()
 
-# --- TAB 2: ANALISIS CUACA ---
-with tab2:
-    st.subheader("Visualisasi 2: Dampak Kondisi Cuaca")
-    weather_data = main_df.groupby("weathersit")["cnt"].mean().reset_index()
+# ANALISIS CUACA
+st.subheader("☁️ Dampak Kondisi Cuaca Terhadap Penyewaan")
+weather_data = main_df.groupby("weathersit_label")["cnt"].mean().sort_values(ascending=False).reset_index()
+fig2, ax2 = plt.subplots(figsize=(10, 5))
+sns.barplot(x="weathersit_label", y="cnt", data=weather_data, color="#72BCD4", ax=ax2)
+ax2.set_xlabel("Kondisi Cuaca")
+ax2.set_ylabel("Rata-rata Penyewaan")
+st.pyplot(fig2)
+with st.expander("Lihat Penjelasan Cuaca"):
+    st.write("Data menunjukkan bahwa rata-rata penyewaan tertinggi terjadi pada cuaca **Clear/Cerah**. Sebaliknya, kondisi cuaca ekstrem seperti hujan lebat atau salju secara signifikan mengurangi minat pengguna untuk bersepeda.")
 
-    fig2, ax2 = plt.subplots(figsize=(12, 6))
-    sns.barplot(x="weathersit", y="cnt", data=weather_data, palette="viridis", ax=ax2)
-    ax2.set_title("Rata-rata Penyewaan Berdasarkan Cuaca", fontsize=18)
-    ax2.set_xlabel(None)
-    st.pyplot(fig2)
-    
-    with st.container():
-        st.write("### 💡 Insight Analisis Cuaca")
-        st.write("- Kondisi cuaca **Clear/Cerah** mendominasi jumlah rata-rata penyewaan harian.")
-        st.write("- Sebaliknya, kondisi hujan atau salju ringan mengurangi minat pengguna secara drastis.")
+st.divider()
 
-# --- TAB 3: POLA JAM (Visualisasi ke-3) ---
-with tab3:
-    st.subheader("Visualisasi 3: Pola Jam Operasional")
-    hourly_data = hour_df.groupby("hr")["cnt"].mean().reset_index()
+# HOURLY & TIME CATEGORY ANALYSIS (BERDAMPINGAN)
+st.subheader("🕒 Hourly & Time Category Analysis")
+col_v1, col_v2 = st.columns(2)
 
-    fig3, ax3 = plt.subplots(figsize=(14, 6))
-    sns.lineplot(x="hr", y="cnt", data=hourly_data, marker='o', color="#D47272", linewidth=2)
+with col_v1:
+    st.markdown("<p style='text-align: center; font-weight: bold;'>Pola Berdasarkan Jam</p>", unsafe_allow_html=True)
+    hourly_data = main_hour_df.groupby("hr")["cnt"].mean().reset_index()
+    fig3, ax3 = plt.subplots(figsize=(8, 6))
+    sns.lineplot(x="hr", y="cnt", data=hourly_data, marker='o', color="#72BCD4", ax=ax3)
     ax3.set_xticks(range(0, 24))
-    ax3.set_title("Rata-rata Penyewaan Berdasarkan Jam dalam Sehari", fontsize=18)
     ax3.set_xlabel("Jam (0-23)")
-    ax3.grid(True, alpha=0.3)
+    ax3.set_ylabel("Rata-rata Penyewaan")
     st.pyplot(fig3)
-    
-    with st.container():
-        st.write("### 💡 Insight Pola Jam")
-        st.write("- Terjadi dua lonjakan utama pada jam sibuk, yaitu pukul **08:00** dan **17:00**.")
-        st.write("- Hal ini mengindikasikan bahwa sepeda banyak digunakan oleh pekerja atau pelajar sebagai alat transportasi rutin.")
+
+with col_v2:
+    st.markdown("<p style='text-align: center; font-weight: bold;'>Pola Berdasarkan Kelompok Waktu</p>", unsafe_allow_html=True)
+    category_data = main_hour_df.groupby("time_category")["cnt"].mean().reindex(["Pagi", "Siang", "Sore", "Malam"]).reset_index()
+    fig4, ax4 = plt.subplots(figsize=(8, 6))
+    # Menggunakan variasi tone warna biru agar mirip dengan referensi gambar kamu
+    colors = ["#212121", "#455A64", "#78909C", "#90CAF9"]
+    sns.barplot(x="time_category", y="cnt", data=category_data, palette=colors, ax=ax4)
+    ax4.set_xlabel("Kategori Waktu")
+    ax4.set_ylabel("Rata-rata Penyewaan")
+    st.pyplot(fig4)
+
+st.info("Informasi: Analisis menunjukkan jam sibuk pada pagi hari (sekitar jam 8) dan sore hari (sekitar jam 17). Teknik *Manual Grouping* membagi waktu menjadi 4 kategori untuk mempermudah identifikasi perilaku pengguna.")
 
 # --- 7. FOOTER ---
 st.markdown("---")
-st.caption('Copyright © Dina Salwa Mannatu | Proyek Analisis Data 2026')
+st.caption('ID Dicoding: CDCC596D6X0981 | Copyright © Dina Salwa Mannatu 2026')
