@@ -1,14 +1,14 @@
 # 🚲 Proyek Analisis Data: Bike Sharing Dataset
 
 ## Deskripsi
-Proyek ini merupakan submission akhir untuk kelas **"Belajar Analisis Data dengan Python"** di Dicoding. Dashboard ini memberikan wawasan mendalam mengenai tren penyewaan sepeda berdasarkan parameter waktu (bulanan), kondisi cuaca, dan pola jam operasional harian.
+Proyek ini merupakan submission akhir untuk kelas **"Belajar Analisis Data dengan Python"** di Dicoding. Dashboard ini memberikan wawasan mendalam mengenai tren penyewaan sepeda berdasarkan parameter waktu, kondisi cuaca, dan pola jam harian pengguna.
 
 ---
 
 ## 👤 Identitas Pengembang
 - **Nama:** Dina Salwa Mannatu
-- **Email:** (Isi dengan email kamu)
-- **ID Dicoding:** (Isi dengan ID Dicoding kamu)
+- **Email:** dinasalwa2105@gmail.com
+- **ID Dicoding:** dina_salwa
 
 ---
 
@@ -29,10 +29,12 @@ Proyek ini merupakan submission akhir untuk kelas **"Belajar Analisis Data denga
 ```
 
 ## 🚀 Instalasi Lingkungan Kerja (Local)
-1. Clone repository ini atau download ZIP-nya.
-2. Pastikan Anda memiliki Python terinstal di perangkat Anda.
-3. Instal library yang dibutuhkan dengan menjalankan perintah berikut di terminal:
+**Setup Environment:**
 ```
+mkdir bike-sharing-analysis-main
+cd bike-sharing-analysis-main
+python -m venv venv
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
