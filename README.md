@@ -29,10 +29,13 @@ Proyek ini merupakan submission akhir untuk kelas **"Belajar Analisis Data denga
 ```
 
 ## 🚀 Instalasi Lingkungan Kerja (Local)
+
 **Setup Environment: Anaconda**
+```
 conda create --name bike-sharing-ds python=3.9
 conda activate bike-sharing-ds
 pip install -r requirements.txt
+```
 
 **Setup Environment: Shell/Terminal**
 ```
